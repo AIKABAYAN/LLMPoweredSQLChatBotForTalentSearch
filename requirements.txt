@@ -1,0 +1,6 @@
+python-telegram-bot==22.3
+psycopg2-binary==2.9.1
+ollama==0.3.0
+python-dotenv==1.0.1
+Flask==2.3.2
+pyngrok==7.3.0

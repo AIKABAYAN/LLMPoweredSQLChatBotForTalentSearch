@@ -158,3 +158,14 @@ Known bugs:
 Role/Level: empty
 Technologies: empty
 Total Project Duration: 10.0 years
+
+Name: EMP-030525575
+Role/Level: (not specified)
+Technologies: (not specified)
+Total Project Duration: 0.0 years
+
+Projects:
+- (none)
+
+
+curl -X POST "http://localhost:7777/search"  -H "Content-Type: application/json" -d '{"query": "5 sdm java Python", "session_id": "curl_test"}'

@@ -1,162 +1,101 @@
-# LLMPoweredSQLChatBotForTalentSearch
-LLM-Powered SQL Chatbot for Talent Search
-recommed me 3 talent Technical Leader Java microservice python and 2 backup
-
-
-Product Requirement Document (PRD)
-
-Product: LLM-Powered SQL Chatbot for Talent Search
-Version: v14
-Date: 2025-08-25
-
-1. Overview
-
-Chatbot berbasis LLM yang mengubah natural language query menjadi SQL, menggabungkan hasil multi-tabel, menghitung skor berdasarkan kriteria, dan menampilkan hasil dengan opsi Employee Summary.
-
-2. Goals
-
-Mendukung pencarian talent dengan role, skills, projects, education, timesheet.
-
-Mendukung scoring detail untuk Must Have dan Nice to Have.
-
-Menyediakan Employee Summary (opsional).
-
-Logging detail (console + file).
-
-Export ke CSV.
-
-3. New Updates
-3.1 Timeout
-
-Timeout request ke LLM ditingkatkan menjadi 50000 detik.
-
-3.2 Employee Name Handling
-
-Jika full_name kosong, sistem akan resolve dari database berdasarkan employee_id.
-
-Jika ditemukan → gunakan nama asli.
-
-Jika tidak ditemukan → fallback EMP-<employee_id>.
-
-3.3 Must Have & Nice to Have Scope
-
-“Must Have” dan “Nice to Have” hanya berlaku untuk:
-
-Skills / Technologies
-
-Projects (keyword terkait pengalaman proyek)
-
-Years of Experience
-
-Role, Education, Timesheet tidak termasuk dalam Must/Nice categories.
-
-4. Features
-4.1 Intent Parsing
-
-Powered by LLM (Ollama + Qwen3).
-
-Fallback ke heuristic parser.
-
-Extract JSON intent dengan field:
-
-role
-
-skills → must_have, nice_to_have
-
-experience (operator, years; must/nice rules apply)
-
-projects (keywords; must/nice rules apply)
-
-education (preferred, substitute; bukan must/nice)
-
-timesheet (filter aktivitas; bukan must/nice)
-
-limit (primary, backup)
-
-4.2 SQL Querying
-
-Query di tabel:
-
-autobot_dataset_talent_profile_role_tech
-
-autobot_dataset_talent_profile_project_experiences
-
-autobot_dataset_talent_profile_education
-
-autobot_dataset_talent_timesheet
-
-Semua SQL dicatat di logs/sql_queries.txt.
-
-4.3 Scoring & Ranking
-
-Skills:
-
-Must Have skill = +5
-
-Nice to Have skill = +2
-
-Projects:
-
-Must Have project keyword = +4
-
-Nice to Have project keyword = +1
-
-Experience (Years):
-
-Must Have years satisfied = +5
-
-Nice to Have years satisfied = +2
-
-Education:
-
-S1 = +2
-
-D3 Polban = +3
-
-Timesheet: hanya filter, tidak dihitung skor.
-
-4.4 Output & Summary
-
-Default = row per kandidat.
-
-Employee Summary (opsional): merge semua tabel → blok per kandidat.
-
-Project detail ditampilkan dalam grup.
-
-4.5 Logging
-
-Console: ringkas (INFO, ERROR).
-
-File (logs/app.log): detail (DEBUG, scoring breakdown, queries, durations).
-
-File (logs/sql_queries.txt): semua SQL.
-
-Semua log dengan session_id.
-
-4.6 Export
-
-Export CSV dari Results Tab.
-
-5. Non-Goals
-
-Tidak menggunakan semantic search embeddings.
-
-Tidak ada Must/Nice pada role, education, timesheet.
-
-6. Open Questions
-
-Apakah scoring untuk projects perlu ditambah bobot berdasarkan duration proyek?
-
-Apakah constraint experience (years) harus strict filter atau cukup sebagai poin scoring?
-
-Mau saya tambahkan di PRD contoh konkret query + parsed JSON baru (misalnya “recommend me Technical Leader with Must: Java, Nice: Python, Must Project: Core Banking, Experience > 5 years”)?
-
-
-
-Known bugs:
-1. education still bug double
-2. 5 year still below shown 1.1 years
-3. sometimes 
-Role/Level: empty
-Technologies: empty
-Total Project Duration: 10.0 years
+# Talent Search Chatbot
+
+An intelligent chatbot for searching and filtering talent profiles using natural language processing and SQL queries.
+
+## Features
+
+- Natural language processing for talent search queries
+- Smart candidate matching with scoring algorithms
+- Multiple interface options:
+  - Desktop UI application
+  - Telegram bot integration
+- PostgreSQL database backend
+- AI-powered intent parsing with Ollama
+
+## Prerequisites
+
+- Python 3.8+
+- PostgreSQL database
+- Ollama with qwen3 models
+- Telegram account (for bot functionality)
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd LLMPoweredSQLChatBot
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Set up the database:
+   - Create a PostgreSQL database
+   - Update connection details in `.env` file
+
+4. Configure Ollama:
+   - Install Ollama from https://ollama.com/
+   - Pull required models:
+     ```bash
+     ollama pull qwen3:4b-instruct
+     ollama pull qwen3:0.6b
+     ```
+
+5. Configure environment variables:
+   - Copy `.env.example` to `.env`
+   - Update values in `.env` with your configuration
+
+## Running the Application
+
+### UI Mode
+```bash
+python main.py
+```
+
+### Telegram Bot
+Follow the instructions in [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) for setting up and running the Telegram bot.
+
+## Usage
+
+### UI Application
+The desktop UI provides a chat-like interface for interacting with the talent search system.
+
+### Telegram Bot
+The Telegram bot allows you to search for candidates using natural language queries:
+- "5 sdm java Python" (5 people with Java as must-have and Python as nice-to-have)
+- "find Technical Leader with core banking experience"
+- "show me candidates with >5 years experience"
+
+### Query Syntax
+- Capitalized skills (Java) = must-have
+- Lowercase skills (python) = nice-to-have
+- Numbers indicate quantity of candidates to return
+
+## Project Structure
+
+```
+src/
+├── config.py          # Configuration and logging setup
+├── database.py        # Database connection
+├── intent_parser.py   # Intent parsing functionality
+├── sql_builder.py     # SQL query building
+├── query_executor.py  # Query execution and data merging
+├── scoring.py         # Employee scoring algorithms
+├── formatter.py       # Result formatting
+├── logger_helper.py   # Logging helpers
+├── ui.py              # UI application
+├── telegram_bot.py    # Telegram bot integration
+└── main.py            # Main application entry point
+```
+
+## Technologies Used
+
+- Python
+- PostgreSQL
+- Ollama (qwen3 models)
+- Tkinter (UI)
+- python-telegram-bot
+- Flask (webhook server)
