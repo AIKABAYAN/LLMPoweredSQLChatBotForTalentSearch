@@ -134,6 +134,8 @@ def run_all_queries(intent: dict, session_id: str):
             name = d["roles"][0].get("full_name")
         elif d["projects"]:
             name = d["projects"][0].get("nama_lengkap")
+        elif d["education"]:
+            name = d["education"][0].get("name")
         elif d["timesheet"]:
             name = d["timesheet"][0].get("employee_name")
         if not name:
@@ -153,14 +155,21 @@ def run_all_queries(intent: dict, session_id: str):
         exp_req = intent.get("experience", {})
         min_years = exp_req.get("min_years")
         max_years = exp_req.get("max_years")
+        min_months = exp_req.get("min_months")
+        max_months = exp_req.get("max_months")
 
+        # Handle min experience requirement
         if min_years is not None:
             min_months = min_years * 12
+        if min_months is not None:
             if d["total_experience_months"] < min_months:
                 logger.debug(f"[{session_id}] Candidate {emp_id} excluded (exp {d['total_experience_months']} < {min_months} mo)")
                 continue
+
+        # Handle max experience requirement
         if max_years is not None:
             max_months = max_years * 12
+        if max_months is not None:
             if d["total_experience_months"] > max_months:
                 logger.debug(f"[{session_id}] Candidate {emp_id} excluded (exp {d['total_experience_months']} > {max_months} mo)")
                 continue

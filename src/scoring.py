@@ -59,53 +59,71 @@ def score_candidate(emp: dict, intent: dict):
     if exp_rule:
         op = exp_rule.get("operator")
         val_years = exp_rule.get("years", 0)
-        val_months = val_years * 12
+        val_months = exp_rule.get("months", val_years * 12 if val_years else 0)
         if check_operator(months, op, val_months):
             score += 5
-            breakdown.append(f"Must exp {op} {val_years} years ({val_months} mo) satisfied +5")
+            breakdown.append(f"Must exp {op} {val_months//12} years ({val_months} mo) satisfied +5")
         else:
-            breakdown.append(f"Missing must exp {op} {val_years} years ({val_months} mo) → excluded")
+            breakdown.append(f"Missing must exp {op} {val_months//12} years ({val_months} mo) → excluded")
             return 0, breakdown, True
 
     nice_exp = intent.get("experience", {}).get("nice_to_have")
     if nice_exp:
         op = nice_exp.get("operator")
         val_years = nice_exp.get("years", 0)
-        val_months = val_years * 12
+        val_months = nice_exp.get("months", val_years * 12 if val_years else 0)
         if check_operator(months, op, val_months):
             score += 2
-            breakdown.append(f"Nice exp {op} {val_years} years ({val_months} mo) satisfied +2")
+            breakdown.append(f"Nice exp {op} {val_months//12} years ({val_months} mo) satisfied +2")
 
     # --- PRD v16: min/max ---
-    min_years = intent.get("experience", {}).get("min_years")
-    max_years = intent.get("experience", {}).get("max_years")
+    exp_req = intent.get("experience", {})
+    min_years = exp_req.get("min_years")
+    max_years = exp_req.get("max_years")
+    min_months = exp_req.get("min_months")
+    max_months = exp_req.get("max_months")
+    
+    # Handle min experience requirement
     if min_years is not None:
         min_months = min_years * 12
+    if min_months is not None:
         if months < min_months:
             breakdown.append(f"Experience {months} mo < {min_months} mo → excluded")
             return 0, breakdown, True
         else:
             score += 3
-            breakdown.append(f"Experience ≥ {min_years} years ({min_months} mo) +3")
+            breakdown.append(f"Experience ≥ {min_months//12} years ({min_months} mo) +3")
+            
+    # Handle max experience requirement
     if max_years is not None:
         max_months = max_years * 12
+    if max_months is not None:
         if months > max_months:
             breakdown.append(f"Experience {months} mo > {max_months} mo → excluded")
             return 0, breakdown, True
         else:
             score += 2
-            breakdown.append(f"Experience ≤ {max_years} years ({max_months} mo) +2")
+            breakdown.append(f"Experience ≤ {max_months//12} years ({max_months} mo) +2")
 
     # ================= Education =================
+    education_score = 0
+    education_breakdown = []
+    
     for e in emp.get("education", []):
         deg = (e.get("degree") or "").lower()
         school = (e.get("school") or "").lower()
-        if "s1" in deg:
-            score += 2
-            breakdown.append("Education S1 +2")
+        # Only give points for the highest relevant education
         if "d3" in deg and "polban" in school:
-            score += 3
-            breakdown.append("Education D3 Polban +3")
+            if 3 > education_score:  # D3 Polban is worth more than S1
+                education_score = 3
+                education_breakdown = ["Education D3 Polban +3"]
+        elif "s1" in deg:
+            if 2 > education_score:  # S1 is worth 2 points
+                education_score = 2
+                education_breakdown = ["Education S1 +2"]
+    
+    score += education_score
+    breakdown.extend(education_breakdown)
 
     return score, breakdown, exclude
 

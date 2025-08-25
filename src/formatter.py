@@ -1,4 +1,4 @@
-from src.scoring import compute_years_from_projects
+
 
 def build_must_nice_sections(emp: dict, intent: dict):
     skills = intent.get("skills", {})
@@ -34,8 +34,8 @@ def format_employee_summary(emp: dict, intent: dict) -> str:
         if t.strip()
     }))
 
-    # ✅ Compute total project duration in years
-    years = compute_years_from_projects(emp["projects"]) or 0
+    # ✅ Use pre-calculated total project duration in years
+    years = emp.get("total_experience_years", 0)
 
     must_lines, nice_lines = build_must_nice_sections(emp, intent)
 
@@ -94,9 +94,9 @@ def format_employee_summary(emp: dict, intent: dict) -> str:
     # =========================================
     parts = [
         f"Name: {name}",
-        f"Role/Level: {role_level}" if role_level else "Role/Level:",
-        f"Technologies: {techs}" if techs else "Technologies:",
-        f"Total Project Duration: {years:.1f} years",  # ✅ Added line
+        f"Role/Level: {role_level}" if role_level else "Role/Level: (not specified)",
+        f"Technologies: {techs}" if techs else "Technologies: (not specified)",
+        f"Total Project Duration: {years:.1f} years",
         "",
     ]
     if must_lines:
@@ -120,6 +120,6 @@ def format_bucketed_sentences(sorted_emps):
             for t in str(r.get("ready_technology") or "").split(",")
             if t.strip()
         }))
-        years = compute_years_from_projects(emp["projects"]) or 0
+        years = emp.get("total_experience_years", 0)
         lines.append(f"{name} {role or ''} {techs or ''} {years:.1f} years.")
     return "\n".join(lines)

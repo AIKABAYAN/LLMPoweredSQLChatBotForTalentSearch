@@ -12,6 +12,12 @@ EXPERIENCE_LTE_RE = re.compile(r"(experience|exp)\s*(<=|≤)\s*(\d+)\s*(years?|y
 def _only_name_query(txt: str) -> bool:
     """Deteksi kalau prompt hanya berisi nama (misalnya 'Dedi' atau 'Dedi Saputra')."""
     t = txt.strip().strip('"').strip("'")
+    
+    # Jika dimulai dengan angka diikuti kata seperti "talent", "person", "people", "orang", "sdm", dll
+    # maka ini bukan name query, tapi permintaan jumlah kandidat
+    if re.match(r"^\d+\s+(talent|person|people|kandidat|candidates?|orang|individual|sdm|resource|resources)", t, re.I):
+        return False
+        
     if len(t.split()) <= 3:
         if not re.search(r"(experience|exp|role|project|degree|school|timesheet|date|between|and|or|,|:|;|>|<|>=|<=)", t, re.I):
             return True
@@ -45,29 +51,62 @@ def _extract_role(txt: str) -> str:
     return ""
 
 def _extract_skills(txt: str) -> Dict[str, list]:
-    tokens = re.findall(r"[a-zA-Z][a-zA-Z\+\.\-# ]+", txt)
-    tokens = [t.strip().lower() for t in tokens]
+    # Extract skills with capitalization logic:
+    # - Capitalized first letter = must have
+    # - Not capitalized = nice to have
+    
+    # Find all skill-like terms (words that could be skills)
+    terms = re.findall(r"[A-Za-z][A-Za-z\+\.\-#]*", txt)
+    
+    whitelist = {"java","python","core banking","spring","spring boot","node","react","go","golang","kotlin"}
+    
+    # Normalization for common typos
+    normalization = {
+        "pyton": "python",
+        "pyhton": "python",
+        "javasript": "javascript",
+        "js": "javascript",
+        "nodejs": "node",
+        "golang": "go"
+    }
+    
+    must_skills = set()
+    nice_skills = set()
+    
     common = {
         "recommend","me","with","and","or","nice","to","have","must","find",
         "experience","years","year","exp","please","need","looking","for",
         "role","project","education","school","degree","fresh","graduate",
         "between","start","end","date","from","until","timesheet"
     }
-    whitelist = {"java","python","core banking","spring","spring boot","node","react","go","golang","kotlin"}
-    txt_low = txt.lower()
-    merged = set()
-    if "core banking" in txt_low: merged.add("core banking")
-    if "spring boot" in txt_low: merged.add("spring boot")
-
-    for t in tokens:
-        if t in common: continue
-        if t in merged: continue
-        if t == "technical leader": continue
-        if t in whitelist or len(t) <= 12:
-            merged.add(t)
-
-    must = sorted(list(merged))
-    return {"must_have": must, "nice_to_have": []}
+    
+    for term in terms:
+        # Skip common words
+        if term.lower() in common:
+            continue
+            
+        # Check if first letter is capitalized
+        is_capitalized = term[0].isupper() if term else False
+        
+        # Normalize the term (convert to lowercase for lookup)
+        normalized = normalization.get(term.lower(), term.lower())
+        
+        # Only consider whitelisted skills
+        if normalized in whitelist:
+            if is_capitalized:
+                must_skills.add(normalized)
+            else:
+                nice_skills.add(normalized)
+    
+    # If no capitalized skills, treat all as must_have (backward compatibility)
+    if not must_skills and nice_skills:
+        must_skills = nice_skills
+        nice_skills = set()
+    
+    return {
+        "must_have": sorted(list(must_skills)), 
+        "nice_to_have": sorted(list(nice_skills))
+    }
 
 def call_ollama_intent(user_query: str) -> Tuple[Dict[str, Any], str]:
     """
@@ -93,6 +132,15 @@ def call_ollama_intent(user_query: str) -> Tuple[Dict[str, Any], str]:
 
     # 3) Heuristic fallback
     intent: Dict[str, Any] = {}
+
+    # Check for quantity request (e.g., "5 talent python")
+    quantity_match = re.match(r"^(\d+)\s+(?:talent|person|people|kandidat|candidates?|orang|individual|sdm|resource|resources)\b", txt, re.I)
+    if quantity_match:
+        quantity = int(quantity_match.group(1))
+        # Remove the quantity part from the text for further processing
+        txt = txt[quantity_match.end():].strip()
+        intent.setdefault("limit", {})["primary"] = quantity
+        intent.setdefault("limit", {})["backup"] = max(2, quantity // 2)
 
     # Role
     role = _extract_role(txt)

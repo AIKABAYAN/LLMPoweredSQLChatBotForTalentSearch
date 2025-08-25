@@ -26,7 +26,7 @@ class App:
         root.title("Talent Search Chatbot v15 (Export PDF)")  # PRD v15
         root.geometry("1180x760")
 
-        self.employee_summary_var = tk.BooleanVar(value=False)
+        self.employee_summary_var = tk.BooleanVar(value=True)
         self.start_date_var = tk.StringVar(value="")
         self.end_date_var = tk.StringVar(value="")
 
