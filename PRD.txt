@@ -63,7 +63,7 @@ Chatbot berbasis LLM untuk pencarian talent dengan kemampuan parsing query natur
 
     Experience filtering: Min/Max years dengan pengecualian jika tidak memenuhi
 
-    Education scoring: S1 (+2), D3 Polban (+3)
+    Education scoring: S1 (+2), D3 itb (+3)
 
 3.6 SQL Query Optimization
 
@@ -127,7 +127,7 @@ SQL dicatat ke: logs/sql_queries.txt
 
     Experience: Filter min/max, bonus points for meeting criteria
 
-    Education: S1 = +2, D3 Polban = +3
+    Education: S1 = +2, D3 ITB = +3
 
     Exclusion: Kandidat diexclude jika missing Must Have skills/projects
 
